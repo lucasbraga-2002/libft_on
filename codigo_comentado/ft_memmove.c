@@ -1,13 +1,4 @@
 /* ************************************************************************** */
-
-/*
-** ESTUDO: ft_memmove
-** O QUE RESOLVE: Copia n bytes permitindo que a origem e destino se sobreponham.
-** CAMINHO DO ALGORITMO: Compara a direcao dos buffers: se destino esta antes de origem, copiar para frente e seguro; caso contrario percorre de tras para frente para nao sobrescrever bytes que ainda precisam ser lidos.
-** PARA DEFENDER: Por que o laco decrementa n ANTES do acesso? Para copiar o ultimo indice valido primeiro. Testes: deslocar 'abcdef' a direita e a esquerda no mesmo array.
-** O C original abaixo permanece intacto; comentarios sao somente para estudo.
-*/
-
 /*                                                                            */
 /*                                                        :::      ::::::::   */
 /*   ft_memmove.c                                       :+:      :+:    :+:   */
@@ -19,36 +10,61 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+
+/*
+ * LEITURA GUIADA — ft_memmove
+ *
+ * PROBLEMA: copiar n bytes, mesmo quando origem e destino ocupam parte
+ * da MESMA regiao de memoria. Copiar sempre do inicio poderia destruir
+ * bytes da origem antes de termos a chance de le-los.
+ *
+ * EXEMPLO: buffer = "ABCDE", mover 4 bytes de buffer para buffer+1.
+ * Se copiar da esquerda para direita, gravar A na posicao 1 sobrescreve
+ * B, que ainda sera lido. Copiar do fim resolve: D vai para posicao 4,
+ * C para 3, B para 2, A para 1; resultado "AABCD".
+ *
+ * No outro sentido (destino antes da origem), copiar do inicio funciona.
+ * O algoritmo escolhe o sentido, sempre realizando n atribuicoes de bytes.
+ *
+ * PONTO DE REVISAO: a comparacao pd < ps entre enderecos de objetos
+ * independentes nao e portavel segundo C; o comportamento de memmove
+ * deve ser analisado com atencao a validade dos ponteiros.
+ */
+
 #include "libft.h"
 
 void	*ft_memmove(void *dest, const void *src, size_t n)
 {
+	/* Ponteiro para os bytes do DESTINO. unsigned char permite escrever cada byte individualmente. */
 	unsigned char		*pd;
+	/* Ponteiro para os bytes da ORIGEM. const indica que esta funcao nao pretende altera-los por ps. */
 	const unsigned char	*ps;
 
-	/* Desvio de controle: se esta condicao for verdadeira, executamos o ramo correspondente, protegendo um limite ou caso especial. */
+	/* Caso especial da sua implementacao: quando os dois ponteiros sao nulos, sai antes de tentar acessar os buffers. */
 	if (dest == 0 && src == 0)
-	/* Termina a funcao aqui e entrega este valor ao chamador; observe se e ponteiro, tamanho ou sinal. */
+	/* Devolve NULL no caso especial de ambos os enderecos serem nulos. */
 		return (NULL);
-	/* Interpreta a regiao de memoria como sequencia de bytes, sem mudar seu endereco. */
+	/* Converte o ponteiro generico de destino em ponteiro para byte sem copiar nenhum dado. */
 	pd = (unsigned char *)dest;
-	/* Le bytes sem poder altera-los por este ponteiro const. */
+	/* Faz o mesmo com a origem, preservando a indicacao de leitura (const). */
 	ps = (const unsigned char *)src;
-	/* Desvio de controle: se esta condicao for verdadeira, executamos o ramo correspondente, protegendo um limite ou caso especial. */
+	/* Se o destino vier antes da origem no mesmo bloco, copiar para frente evita sobrescrever bytes ainda nao lidos. */
 	if (pd < ps)
+	/* Reaproveita sua copia byte a byte: nesta direcao nao ha risco de destruir bytes que ainda serao lidos. */
 		ft_memcpy(dest, src, n);
+	/* Se o destino nao vier antes, percorremos de tras para frente, protegendo os bytes anteriores da origem. */
 	else
 	{
-	/* Este laco define quantos elementos serao examinados; identifique o indice/ponteiro que avanca dentro dele. */
+	/* Ainda existem n bytes para copiar. O contador sera reduzido ate zero. */
 		while (n > 0)
 		{
-	/* Reduz o indice/contador para visitar a parte anterior do intervalo. */
+	/* O ultimo indice valido e n-1. Decrementar ANTES do acesso impede escrever na posicao n (fora da faixa). */
 			n--;
-	/* Escreve numa posicao calculada: confira o limite maximo permitido antes de executar. */
+	/* Copia um byte do fim para o inicio; esse sentido torna seguro o deslocamento para a direita dentro do mesmo buffer. */
 			pd[n] = ps[n];
 		}
 	}
-	/* Termina a funcao aqui e entrega este valor ao chamador; observe se e ponteiro, tamanho ou sinal. */
+	/* Por contrato, a funcao devolve o endereco inicial do destino recebido, nao a posicao final copiada. */
 	return (dest);
 }
 
